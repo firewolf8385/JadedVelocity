@@ -1,0 +1,7 @@
+file-version: 1
+
+# Redis
+# Syncs data across servers.
+Redis:
+  host: "127.0.0.1"
+  port: 6379
