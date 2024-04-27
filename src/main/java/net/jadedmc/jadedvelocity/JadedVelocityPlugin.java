@@ -25,13 +25,11 @@
 package net.jadedmc.jadedvelocity;
 
 import com.google.inject.Inject;
-import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import dev.dejvokep.boostedyaml.YamlDocument;
 import dev.dejvokep.boostedyaml.dvs.versioning.BasicVersioning;
@@ -40,6 +38,7 @@ import dev.dejvokep.boostedyaml.settings.general.GeneralSettings;
 import dev.dejvokep.boostedyaml.settings.loader.LoaderSettings;
 import dev.dejvokep.boostedyaml.settings.updater.UpdaterSettings;
 import net.jadedmc.jadedvelocity.databases.Redis;
+import net.jadedmc.jadedvelocity.listeners.PlayerChooseInitialServerListener;
 import org.bson.Document;
 import org.slf4j.Logger;
 import redis.clients.jedis.Jedis;
@@ -49,7 +48,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 @Plugin(
@@ -58,18 +56,25 @@ import java.util.Set;
         version = "1.0",
         url = "https://www.jadedmc.net"
 )
-public class JadedVelocity {
-    private Logger logger;
-    private ProxyServer proxyServer;
-    private Redis redis;
+public class JadedVelocityPlugin {
+    private final Logger logger;
+    private final ProxyServer proxyServer;
+    private final Redis redis;
 
     private YamlDocument config;
 
+    /**
+     * Creates the plugin.
+     * @param proxyServer Instance of the ProxyServer.
+     * @param logger Instance of the Logger.
+     * @param dataDirectory Plugin's Data Directory.
+     */
     @Inject
-    public JadedVelocity(ProxyServer proxyServer, Logger logger, @DataDirectory Path dataDirectory) {
+    public JadedVelocityPlugin(ProxyServer proxyServer, Logger logger, @DataDirectory Path dataDirectory) {
         this.proxyServer = proxyServer;
         this.logger = logger;
 
+        // Load the configuration file.
         try {
             config = YamlDocument.create(new File(dataDirectory.toFile(), "config.yml"),
                     Objects.requireNonNull(getClass().getResourceAsStream("/config.yml")),
@@ -84,12 +89,17 @@ public class JadedVelocity {
             exception.printStackTrace();
         }
 
+        // Connect to redis.
         redis = new Redis(this);
     }
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
-        // Get the Instances from Redis.
+        // Register events.
+        proxyServer.getEventManager().register(this, new PlayerChooseInitialServerListener(this));
+
+
+        // Register loaded servers.
         try(Jedis jedis = redis.jedisPool().getResource()) {
             Set<String> names = jedis.keys("servers:*");
 
@@ -103,36 +113,15 @@ public class JadedVelocity {
             }
         }
     }
-
-    @Subscribe
-    public void onServerChose(PlayerChooseInitialServerEvent event) {
-        String serverName = "limbo";
-        int playerCount = 9999;
-
-        try(Jedis jedis = redis.jedisPool().getResource()) {
-            Set<String> names = jedis.keys("servers:*");
-
-            for(String key : names) {
-                Document instance = Document.parse(jedis.get(key));
-
-                if(!instance.getString("mode").equals("HUB")) {
-                    continue;
-                }
-
-                if(instance.getInteger("online") > playerCount) {
-                    continue;
-                }
-
-                serverName = instance.getString("serverName");
-                playerCount = instance.getInteger("online");
-            }
-        }
-
-        Optional<RegisteredServer> server = proxyServer.getServer(serverName);
-        server.ifPresent(event::setInitialServer);
-    }
-
     public YamlDocument getConfig() {
         return config;
+    }
+
+    public ProxyServer getProxyServer() {
+        return proxyServer;
+    }
+
+    public Redis getRedis() {
+        return redis;
     }
 }

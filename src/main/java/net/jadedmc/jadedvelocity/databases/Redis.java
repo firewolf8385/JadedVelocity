@@ -24,7 +24,7 @@
  */
 package net.jadedmc.jadedvelocity.databases;
 
-import net.jadedmc.jadedvelocity.JadedVelocity;
+import net.jadedmc.jadedvelocity.JadedVelocityPlugin;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -33,14 +33,14 @@ import redis.clients.jedis.JedisPoolConfig;
  * Manages the connection process to Redis.
  */
 public class Redis {
-    private final JadedVelocity plugin;
+    private final JadedVelocityPlugin plugin;
     private final JedisPool jedisPool;
 
     /**
      * Connects to Redis.
      * @param plugin Instance of the plugin.
      */
-    public Redis(final JadedVelocity plugin) {
+    public Redis(final JadedVelocityPlugin plugin) {
         this.plugin = plugin;
 
         JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
