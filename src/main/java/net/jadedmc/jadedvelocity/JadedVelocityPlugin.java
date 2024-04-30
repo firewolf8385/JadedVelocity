@@ -40,7 +40,9 @@ import dev.dejvokep.boostedyaml.settings.updater.UpdaterSettings;
 import net.jadedmc.jadedvelocity.databases.Redis;
 import net.jadedmc.jadedvelocity.instances.InstanceMonitor;
 import net.jadedmc.jadedvelocity.listeners.CommandExecuteListener;
+import net.jadedmc.jadedvelocity.listeners.DisconnectListener;
 import net.jadedmc.jadedvelocity.listeners.PlayerChooseInitialServerListener;
+import net.jadedmc.jadedvelocity.listeners.ServerConnectedListener;
 import org.bson.Document;
 import org.slf4j.Logger;
 import redis.clients.jedis.Jedis;
@@ -104,7 +106,9 @@ public class JadedVelocityPlugin {
     public void onProxyInitialization(ProxyInitializeEvent event) {
         // Register events.
         proxyServer.getEventManager().register(this, new CommandExecuteListener(this));
+        proxyServer.getEventManager().register(this, new DisconnectListener(this));
         proxyServer.getEventManager().register(this, new PlayerChooseInitialServerListener(this));
+        proxyServer.getEventManager().register(this, new ServerConnectedListener(this));
 
 
         // Register loaded servers.
