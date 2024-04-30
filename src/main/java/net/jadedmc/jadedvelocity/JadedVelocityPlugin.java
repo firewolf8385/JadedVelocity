@@ -38,6 +38,8 @@ import dev.dejvokep.boostedyaml.settings.general.GeneralSettings;
 import dev.dejvokep.boostedyaml.settings.loader.LoaderSettings;
 import dev.dejvokep.boostedyaml.settings.updater.UpdaterSettings;
 import net.jadedmc.jadedvelocity.databases.Redis;
+import net.jadedmc.jadedvelocity.instances.InstanceMonitor;
+import net.jadedmc.jadedvelocity.listeners.CommandExecuteListener;
 import net.jadedmc.jadedvelocity.listeners.PlayerChooseInitialServerListener;
 import org.bson.Document;
 import org.slf4j.Logger;
@@ -60,6 +62,7 @@ public class JadedVelocityPlugin {
     private final Logger logger;
     private final ProxyServer proxyServer;
     private final Redis redis;
+    private final InstanceMonitor instanceMonitor;
 
     private YamlDocument config;
 
@@ -73,6 +76,9 @@ public class JadedVelocityPlugin {
     public JadedVelocityPlugin(ProxyServer proxyServer, Logger logger, @DataDirectory Path dataDirectory) {
         this.proxyServer = proxyServer;
         this.logger = logger;
+
+        // Initialize API
+        new JadedAPI(this);
 
         // Load the configuration file.
         try {
@@ -91,11 +97,13 @@ public class JadedVelocityPlugin {
 
         // Connect to redis.
         redis = new Redis(this);
+        instanceMonitor = new InstanceMonitor(this);
     }
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
         // Register events.
+        proxyServer.getEventManager().register(this, new CommandExecuteListener(this));
         proxyServer.getEventManager().register(this, new PlayerChooseInitialServerListener(this));
 
 
@@ -115,6 +123,10 @@ public class JadedVelocityPlugin {
     }
     public YamlDocument getConfig() {
         return config;
+    }
+
+    public InstanceMonitor getInstanceMonitor() {
+        return instanceMonitor;
     }
 
     public ProxyServer getProxyServer() {
