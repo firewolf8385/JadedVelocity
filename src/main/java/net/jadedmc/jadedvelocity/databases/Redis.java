@@ -24,10 +24,19 @@
  */
 package net.jadedmc.jadedvelocity.databases;
 
+import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.jadedmc.jadedvelocity.JadedVelocityPlugin;
+import net.jadedmc.jadedvelocity.utils.StringUtils;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.JedisPubSub;
+
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Manages the connection process to Redis.
@@ -50,6 +59,8 @@ public class Redis {
         int port = plugin.getConfig().getInt("Redis.port");
 
         jedisPool = new JedisPool(jedisPoolConfig, host, port);
+
+        subscribe();
     }
 
     public JedisPool jedisPool() {
@@ -78,5 +89,49 @@ public class Redis {
         try(Jedis jedis = jedisPool.getResource()) {
             jedis.del(key);
         }
+    }
+
+    public void subscribe() {
+        new Thread("Redis Subscriber") {
+            @Override
+            public void run() {
+
+                try (Jedis jedis = jedisPool.getResource()) {
+                    jedis.subscribe(new JedisPubSub() {
+                        @Override
+                        public void onMessage(String channel, String msg) {
+                            if(!channel.equals("proxy")) {
+                               return;
+                            }
+
+                            String[] args = msg.split(" ");
+
+                            if(args[0].equals("message")) {
+                                UUID uuid = UUID.fromString(args[1]);
+                                String message = StringUtils.join(Arrays.copyOfRange(args, 2, args.length), " ");
+
+                                plugin.getProxyServer().getPlayer(uuid).get().sendMessage(MiniMessage.miniMessage().deserialize(message));
+                            }
+                            else if(args[0].equals("connect")) {
+                                UUID uuid = UUID.fromString(args[1]);
+                                String serverName = args[2];
+
+                                if(plugin.getProxyServer().getPlayer(uuid).isEmpty()) {
+                                    return;
+                                }
+
+                                Player player = plugin.getProxyServer().getPlayer(uuid).get();
+                                Optional<RegisteredServer> server = plugin.getProxyServer().getServer(serverName);
+                                server.ifPresent(request -> player.createConnectionRequest(request).connect());
+                            }
+
+                        }
+                    }, "proxy");
+                }
+                catch (Exception exception) {
+                    exception.printStackTrace();
+                }
+            }
+        }.start();
     }
 }

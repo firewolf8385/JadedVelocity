@@ -28,6 +28,13 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.proxy.Player;
 import net.jadedmc.jadedvelocity.JadedVelocityPlugin;
+import net.jadedmc.jadedvelocity.party.PartyCache;
+import net.jadedmc.jadedvelocity.party.PartyPlayer;
+import net.jadedmc.jadedvelocity.party.PartyRole;
+import org.bson.Document;
+import redis.clients.jedis.Jedis;
+
+import java.util.Set;
 
 /**
  * This listens to the DisconnectEvent event, which is called every time a player leaves the server.
@@ -51,5 +58,33 @@ public class DisconnectListener {
     public void onDisconnect(DisconnectEvent event) {
         Player player = event.getPlayer();
         plugin.getRedis().del("jadedplayers:" + player.getUniqueId().toString());
+
+        // Get all parties from redis.
+        try(Jedis jedis = plugin.getRedis().jedisPool().getResource()) {
+            Set<String> names = jedis.keys("parties:*");
+
+            // Loops through each stored party.
+            for(String key : names) {
+                Document document = Document.parse(jedis.get("parties:" + key.replace("parties:", "")));
+                PartyCache party = new PartyCache(plugin, document);
+
+                // If the player is in that party, cache the party to memory.
+                if(party.hasPlayer(player.getUniqueId())) {
+                    PartyPlayer partyPlayer = party.getPlayer(player.getUniqueId());
+
+                    if(partyPlayer.getRole() != PartyRole.LEADER) {
+                        party.broadcast("<green><bold>Party</bold> <dark_gray>» " + partyPlayer.getRank().getPrefix() + "<gray>" + partyPlayer.getUsername() + " <green>has left the party.");
+                        party.removePlayer(player);
+                        return;
+                    }
+
+                    party.broadcast("<green><bold>Party</bold> <dark_gray>» <green>The party has been disbanded!");
+                    plugin.getRedis().publish("party", "disband " + party.getUniqueID().toString());
+                    plugin.getRedis().del("parties:" + party.getUniqueID().toString());
+
+                    break;
+                }
+            }
+        }
     }
 }
