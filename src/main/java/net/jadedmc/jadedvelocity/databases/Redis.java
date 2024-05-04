@@ -28,6 +28,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.jadedmc.jadedvelocity.JadedVelocityPlugin;
 import net.jadedmc.jadedvelocity.utils.StringUtils;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -107,10 +108,20 @@ public class Redis {
                             String[] args = msg.split(" ");
 
                             if(args[0].equals("message")) {
-                                UUID uuid = UUID.fromString(args[1]);
+                                String[] playerUUIDs = args[1].split(",");
                                 String message = StringUtils.join(Arrays.copyOfRange(args, 2, args.length), " ");
+                                Component formattedMessage = MiniMessage.miniMessage().deserialize(message);
 
-                                plugin.getProxyServer().getPlayer(uuid).get().sendMessage(MiniMessage.miniMessage().deserialize(message));
+                                for(String playerUUID : playerUUIDs) {
+                                    UUID uuid = UUID.fromString(playerUUID);
+
+                                    if(plugin.getProxyServer().getPlayer(uuid).isEmpty()) {
+                                        continue;
+                                    }
+
+                                    Player player = plugin.getProxyServer().getPlayer(uuid).get();
+                                    player.sendMessage(formattedMessage);
+                                }
                             }
                             else if(args[0].equals("connect")) {
                                 UUID uuid = UUID.fromString(args[1]);
