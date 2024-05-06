@@ -33,4 +33,12 @@ public class PartyPlayer {
     public String getUsername() {
         return username;
     }
+
+    public Document toDocument() {
+        return new Document()
+                .append("uuid", uuid.toString())
+                .append("username", username)
+                .append("role", role.toString())
+                .append("rank", rank.toString());
+    }
 }

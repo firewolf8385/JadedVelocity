@@ -28,7 +28,7 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.proxy.Player;
 import net.jadedmc.jadedvelocity.JadedVelocityPlugin;
-import net.jadedmc.jadedvelocity.party.PartyCache;
+import net.jadedmc.jadedvelocity.party.Party;
 import net.jadedmc.jadedvelocity.party.PartyPlayer;
 import net.jadedmc.jadedvelocity.party.PartyRole;
 import org.bson.Document;
@@ -66,7 +66,7 @@ public class DisconnectListener {
             // Loops through each stored party.
             for(String key : names) {
                 Document document = Document.parse(jedis.get("parties:" + key.replace("parties:", "")));
-                PartyCache party = new PartyCache(plugin, document);
+                Party party = new Party(plugin, document);
 
                 // If the player is in that party, cache the party to memory.
                 if(party.hasPlayer(player.getUniqueId())) {
@@ -79,8 +79,7 @@ public class DisconnectListener {
                     }
 
                     party.broadcast("<green><bold>Party</bold> <dark_gray>» <green>The party has been disbanded!");
-                    plugin.getRedis().publish("party", "disband " + party.getUniqueID().toString());
-                    plugin.getRedis().del("parties:" + party.getUniqueID().toString());
+                    party.disband();
 
                     break;
                 }
