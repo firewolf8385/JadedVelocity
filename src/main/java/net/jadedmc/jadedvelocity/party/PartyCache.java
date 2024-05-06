@@ -34,7 +34,15 @@ public class PartyCache {
     }
 
     public void broadcast(final String message) {
-        plugin.getRedis().publish("party", "message " + this.uuid.toString() + " " + message);
+        final StringBuilder builder = new StringBuilder();
+        players.forEach(partyPlayer -> {
+            builder.append(partyPlayer.getUniqueID());
+            builder.append(",");
+        });
+
+        final String targets = builder.substring(0, builder.length() - 1);
+
+        plugin.getRedis().publish("proxy", "message " + targets + " " + message);
     }
 
     public void removePlayer(final Player player) {
