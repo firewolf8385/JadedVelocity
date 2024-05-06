@@ -124,16 +124,20 @@ public class Redis {
                                 }
                             }
                             else if(args[0].equals("connect")) {
-                                UUID uuid = UUID.fromString(args[1]);
+                                String[] playerUUIDs = args[1].split(",");
                                 String serverName = args[2];
-
-                                if(plugin.getProxyServer().getPlayer(uuid).isEmpty()) {
-                                    return;
-                                }
-
-                                Player player = plugin.getProxyServer().getPlayer(uuid).get();
                                 Optional<RegisteredServer> server = plugin.getProxyServer().getServer(serverName);
-                                server.ifPresent(request -> player.createConnectionRequest(request).connect());
+
+                                for(String playerUUID : playerUUIDs) {
+                                    UUID uuid = UUID.fromString(playerUUID);
+
+                                    if(plugin.getProxyServer().getPlayer(uuid).isEmpty()) {
+                                        return;
+                                    }
+
+                                    Player player = plugin.getProxyServer().getPlayer(uuid).get();
+                                    server.ifPresent(request -> player.createConnectionRequest(request).connect());
+                                }
                             }
 
                         }
