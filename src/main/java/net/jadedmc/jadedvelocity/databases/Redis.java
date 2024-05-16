@@ -26,17 +26,21 @@ package net.jadedmc.jadedvelocity.databases;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.api.proxy.server.ServerInfo;
 import net.jadedmc.jadedvelocity.JadedVelocityPlugin;
 import net.jadedmc.jadedvelocity.utils.StringUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bson.Document;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
 
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -137,6 +141,18 @@ public class Redis {
 
                                     Player player = plugin.getProxyServer().getPlayer(uuid).get();
                                     server.ifPresent(request -> player.createConnectionRequest(request).connect());
+                                }
+                            }
+                            else if(args[0].equals("register")) {
+                                final String serverID = args[1];
+
+                                // Register loaded servers.
+                                try(Jedis jedis = jedisPool().getResource()) {
+                                    Document instance = Document.parse(jedis.get("servers:" + serverID));
+                                    String name = instance.getString("serverName");
+                                    InetSocketAddress address = new InetSocketAddress(instance.getInteger("port"));
+                                    ServerInfo server = new ServerInfo(name, address);
+                                    plugin.getProxyServer().registerServer(server);
                                 }
                             }
 
