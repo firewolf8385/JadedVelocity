@@ -40,7 +40,6 @@ import redis.clients.jedis.JedisPubSub;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -62,8 +61,10 @@ public class Redis {
 
         String host = plugin.getConfig().getString("Redis.host");
         int port = plugin.getConfig().getInt("Redis.port");
+        String username = plugin.getConfig().getString("Redis.username");
+        String password = plugin.getConfig().getString("Redis.password");
 
-        jedisPool = new JedisPool(jedisPoolConfig, host, port);
+        jedisPool = new JedisPool(jedisPoolConfig, host, port, username, password);
 
         subscribe();
     }
