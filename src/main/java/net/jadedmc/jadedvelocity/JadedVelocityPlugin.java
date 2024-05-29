@@ -119,7 +119,7 @@ public class JadedVelocityPlugin {
                 Document instance = Document.parse(jedis.get(key));
 
                 String name = instance.getString("serverName");
-                InetSocketAddress address = new InetSocketAddress(instance.getInteger("port"));
+                InetSocketAddress address = new InetSocketAddress(instance.getString("address"),instance.getInteger("port"));
                 ServerInfo server = new ServerInfo(name, address);
                 proxyServer.registerServer(server);
             }

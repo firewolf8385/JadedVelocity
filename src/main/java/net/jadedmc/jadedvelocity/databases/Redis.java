@@ -151,7 +151,7 @@ public class Redis {
                                 try(Jedis jedis = jedisPool().getResource()) {
                                     Document instance = Document.parse(jedis.get("servers:" + serverID));
                                     String name = instance.getString("serverName");
-                                    InetSocketAddress address = new InetSocketAddress(instance.getInteger("port"));
+                                    InetSocketAddress address = new InetSocketAddress(instance.getString("address"), instance.getInteger("port"));
                                     ServerInfo server = new ServerInfo(name, address);
                                     plugin.getProxyServer().registerServer(server);
                                 }
